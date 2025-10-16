@@ -108,5 +108,3 @@ Before moving this API to production, please ensure the following critical servi
 4.  **HSTS:** Ensure HTTPS is enforced by your load balancer or hosting provider for HSTS to be effective.
 
 -----
-
-*(Optional: Add a "Contributing" section if you plan to accept pull requests.)*
