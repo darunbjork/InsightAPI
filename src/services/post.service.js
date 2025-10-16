@@ -124,12 +124,28 @@ const bulkUpdateAuthorUsername = async (authorId, newUsername) => {
   return result;
 };
 
+// NEW: Atomic Increment/Decrement for the commentCount
+const updateCommentCount = async (postId, incrementValue) => {
+  // Use $inc for an atomic update. This is crucial for race condition safety.
+  const post = await Post.findByIdAndUpdate(
+    postId, 
+    { $inc: { commentCount: incrementValue } },
+    { new: true, select: 'commentCount' } // Return the new count
+  ).lean();
+
+  if (!post) {
+    throw new AppError(`Post with ID ${postId} not found.`, 404, 'POST_NOT_FOUND');
+  }
+
+  return post.commentCount;
+};
 
 module.exports = {
   createPost,
   getPostById,
-  getPosts, // Export updated function
+  getPosts,
   updatePost,
   deletePost,
-  bulkUpdateAuthorUsername, // Export new function
+  bulkUpdateAuthorUsername,
+  updateCommentCount, // Export new function
 };

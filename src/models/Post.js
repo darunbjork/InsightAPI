@@ -43,6 +43,7 @@ const PostSchema = new mongoose.Schema({
 
 // IMPORTANT: Define an index on the author.id for efficient querying of a user's posts
 PostSchema.index({ 'author.id': 1 });
+PostSchema.index({ createdAt: -1 }); // Index for sorting the main feed
 
 const Post = mongoose.model('Post', PostSchema);
 
