@@ -6,8 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --testPathPattern=tests/unit",
-    "test:integration": "jest --testPathPattern=tests/integration",
+    "test": "jest --detectOpenHandles --forceExit",
     "lint": "echo 'Run eslint here'",
     "db:start": "docker-compose up -d mongo",
     "db:stop": "docker-compose down mongo"
@@ -36,11 +35,9 @@
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
+    "@shelf/jest-mongodb": "^5.2.2",
     "jest": "^29.7.0",
     "nodemon": "^3.1.0",
     "supertest": "^6.3.4"
-  },
-  "jest": {
-    "testTimeout": 300000
   }
 }

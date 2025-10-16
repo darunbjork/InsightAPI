@@ -29,8 +29,20 @@ const swaggerDocument = YAML.load(path.join(__dirname, '..', 'swagger.yaml'));
 
 // --- Production-Grade Middleware ---
 
-// 1. Security Headers: Helmet adds various HTTP headers to protect the app.
-app.use(helmet()); 
+// 1. Security Headers (Helmet) - CRITICAL FINAL CONFIGURATION
+app.use(helmet({
+  // We explicitly disable the default CSP to avoid breaking Swagger UI, 
+  // but in a production API without Swagger, you would define a strict CSP.
+  contentSecurityPolicy: false,
+  // Strict Transport Security (HSTS) - Force HTTPS for a year
+  strictTransportSecurity: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  // Referrer Policy: Restrict referrer data
+  referrerPolicy: { policy: 'same-origin' }
+}));
 
 // 2. CORS: Set up based on environment. 
 // In production, MUST whitelist specific frontend origins.
