@@ -6,6 +6,7 @@ const PostService = require('./post.service');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 const mongoose = require('mongoose');
+const counterService = require('./counter.service'); 
 
 // 1. Create a new comment
 const createComment = async ({ postId, content, authorId, authorUsername }) => {
@@ -102,20 +103,10 @@ const getCommentById = async (commentId) => {
   return comment;
 };
 
-// NEW: Atomic Increment/Decrement for the likeCount
+// CLEANED: Atomic Increment/Decrement for the likeCount
 const updateLikeCount = async (commentId, incrementValue) => {
-  // Use $inc for an atomic update.
-  const comment = await Comment.findByIdAndUpdate(
-    commentId, 
-    { $inc: { likeCount: incrementValue } },
-    { new: true, select: 'likeCount' } // Return the new count
-  ).lean();
-
-  if (!comment) {
-    throw new AppError(`Comment with ID ${commentId} not found.`, 404, 'COMMENT_NOT_FOUND');
-  }
-
-  return comment.likeCount;
+  // Use the generic counter service
+  return counterService.updateCounter('Comment', commentId, 'likeCount', incrementValue);
 };
 
 

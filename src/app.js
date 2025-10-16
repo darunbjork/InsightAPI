@@ -12,6 +12,8 @@ const requestTracer = require('./middleware/request-tracer');
 const errorHandler = require('./middleware/error-handler');
 const AppError = require('./utils/AppError');
 const path = require('path'); // Node.js path module
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs'); 
 
 const rateLimiter = require('./middleware/rate-limiter'); 
 
@@ -21,6 +23,9 @@ const postRoutes = require('./api/post.routes');
 const commentRoutes = require('./api/comment.routes'); 
 const likeRoutes = require('./api/like.routes'); 
 const app = express();
+
+// Load the OpenAPI specification file
+const swaggerDocument = YAML.load(path.join(__dirname, '..', 'swagger.yaml'));
 
 // --- Production-Grade Middleware ---
 
@@ -83,6 +88,10 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/comments', commentRoutes); 
 app.use('/api/v1/likes', likeRoutes); 
+
+// CRITICAL: Documentation Route
+// Serve the Swagger UI on a dedicated /api-docs route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // --- Error Handling ---
 

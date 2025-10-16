@@ -4,6 +4,7 @@
 const Post = require('../models/Post');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
+const counterService = require('./counter.service'); 
 
 // 1. Create a new post
 const createPost = async ({ title, content, authorId, authorUsername }) => {
@@ -124,36 +125,16 @@ const bulkUpdateAuthorUsername = async (authorId, newUsername) => {
   return result;
 };
 
-// NEW: Atomic Increment/Decrement for the commentCount
+// CLEANED: Atomic Increment/Decrement for the commentCount
 const updateCommentCount = async (postId, incrementValue) => {
-  // Use $inc for an atomic update. This is crucial for race condition safety.
-  const post = await Post.findByIdAndUpdate(
-    postId, 
-    { $inc: { commentCount: incrementValue } },
-    { new: true, select: 'commentCount' } // Return the new count
-  ).lean();
-
-  if (!post) {
-    throw new AppError(`Post with ID ${postId} not found.`, 404, 'POST_NOT_FOUND');
-  }
-
-  return post.commentCount;
+  // Use the generic counter service
+  return counterService.updateCounter('Post', postId, 'commentCount', incrementValue);
 };
 
-// NEW: Atomic Increment/Decrement for the likeCount
+// CLEANED: Atomic Increment/Decrement for the likeCount
 const updateLikeCount = async (postId, incrementValue) => {
-  // Use $inc for an atomic update.
-  const post = await Post.findByIdAndUpdate(
-    postId, 
-    { $inc: { likeCount: incrementValue } },
-    { new: true, select: 'likeCount' } // Return the new count
-  ).lean();
-
-  if (!post) {
-    throw new AppError(`Post with ID ${postId} not found.`, 404, 'POST_NOT_FOUND');
-  }
-
-  return post.likeCount;
+  // Use the generic counter service
+  return counterService.updateCounter('Post', postId, 'likeCount', incrementValue);
 };
 
 
