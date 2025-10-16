@@ -4,7 +4,9 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const PostService = require('./post.service');
 const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
 const config = require('../config/config');
 
 // Helper function to generate both tokens
@@ -94,6 +96,42 @@ const refreshAuthTokens = async (refreshToken) => {
   return { user, accessToken: newAccessToken, refreshToken: newRefreshToken };
 };
 
+// NEW: Update user profile logic
+const updateUserProfile = async (userId, updateBody) => {
+  // 1. Check if the username is being updated
+  const isUsernameUpdate = updateBody.username && updateBody.username !== updateBody.oldUsername;
+  const oldUser = await User.findById(userId).lean();
+  
+  if (!oldUser) {
+    throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
+  }
+
+  // 2. Find and update the user document
+  const updatedUser = await User.findByIdAndUpdate(userId, { $set: updateBody }, {
+    new: true, // Return the updated document
+    runValidators: true, // Run Mongoose validators
+  }).select('-password -__v'); // Exclude sensitive fields
+
+  if (!updatedUser) {
+    // Should not happen if oldUser was found, but a safety check
+    throw new AppError('Profile update failed unexpectedly.', 500, 'UPDATE_FAILED');
+  }
+
+  // 3. Denormalization Update Tax (If username changed)
+  if (isUsernameUpdate) {
+    logger.info({ 
+      event: 'denorm_update_triggered', 
+      userId, 
+      oldUsername: oldUser.username, 
+      newUsername: updatedUser.username 
+    });
+    // Fire the bulk update to all the user's posts
+    await PostService.bulkUpdateAuthorUsername(userId, updatedUser.username);
+  }
+  
+  return updatedUser.toObject();
+};
+
 // 4. Logout (revoke the refresh token)
 const logoutUser = async (refreshToken) => {
   try {
@@ -117,4 +155,5 @@ module.exports = {
   refreshAuthTokens,
   logoutUser,
   generateAuthTokens, // Exported for potential internal use/testing
+  updateUserProfile, // Export new function
 };

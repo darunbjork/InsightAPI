@@ -7,7 +7,8 @@ const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 
 const validate = require('../middleware/validate.middleware');
-const { register, login } = require('../validation/auth.validation');
+const authenticate = require('../middleware/auth.middleware');
+const { register, login, updateProfile } = require('../validation/auth.validation');
 
 const router = express.Router();
 
@@ -146,6 +147,28 @@ router.post('/logout', async (req, res, next) => {
   } catch (error) {
     // Even if revocation fails, we still want to clear the client cookies
     clearAuthCookies(res);
+    next(error);
+  }
+});
+
+// NEW: PUT /api/v1/auth/profile - Update user profile
+// Requires authentication and validation
+router.put('/profile', authenticate, validate(updateProfile), async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    // req.body contains the validated fields (username, email)
+    const updateBody = req.body; 
+
+    const updatedUser = await authService.updateUserProfile(userId, updateBody);
+    
+    logger.info({ event: 'user_profile_updated', requestId: req.id, userId });
+
+    res.status(200).json({ 
+      status: 'success', 
+      message: 'Profile updated successfully.', 
+      user: updatedUser 
+    });
+  } catch (error) {
     next(error);
   }
 });

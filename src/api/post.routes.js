@@ -43,15 +43,15 @@ const checkPostOwnership = async (req, res, next) => {
 
 // --- Routes ---
 
-// GET /api/v1/posts - The feed
-router.get('/', async (req, res, next) => {
+// GET /api/v1/posts - The feed (Now paginated)
+router.get('/', validate(postValidation.getPosts), async (req, res, next) => {
   try {
-    // NOTE: We don't require authentication to READ the public feed
-    const posts = await postService.getPosts(req.query);
+    // req.query is now validated and sanitized (page, limit, authorId)
+    const { posts, ...pagination } = await postService.getPosts(req.query);
     
     res.status(200).json({ 
       status: 'success', 
-      results: posts.length,
+      ...pagination, // Expose pagination metadata
       data: posts 
     });
   } catch (error) {

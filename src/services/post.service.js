@@ -1,8 +1,9 @@
-// post.service.js
-// Business logic for Post management (Create, Read, Update, Delete).
+// post.service.js (UPDATED)
+// Business logic for Post management (Create, Read, Update, Delete), now with bulk updates and pagination.
 
 const Post = require('../models/Post');
 const AppError = require('../utils/AppError');
+const logger = require('../utils/logger');
 
 // 1. Create a new post
 const createPost = async ({ title, content, authorId, authorUsername }) => {
@@ -33,13 +34,37 @@ const getPostById = async (postId) => {
 
 // 3. Get all posts (The Feed) - Initial, unpaginated version
 const getPosts = async (query = {}) => {
-  // For Phase 1, a simple fetch, sorted by newest first
-  const posts = await Post.find(query)
-    .sort({ createdAt: -1 })
-    .lean() // Use .lean() for faster read performance since we don't need Mongoose model methods
-    .exec();
+  const page = parseInt(query.page, 10) || 1;
+  const limit = parseInt(query.limit, 10) || 20;
+  const skip = (page - 1) * limit;
 
-  return posts;
+  // Build the MongoDB filter object
+  const filter = {};
+  if (query.authorId) {
+    filter['author.id'] = query.authorId;
+  }
+  
+  // Get posts for the current page
+  const posts = await Post.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean()
+    .exec();
+    
+  // Get the total count of documents matching the filter
+  const totalResults = await Post.countDocuments(filter);
+  const totalPages = Math.ceil(totalResults / limit);
+
+  return {
+    posts,
+    page,
+    limit,
+    totalResults,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1,
+  };
 };
 
 // 4. Update a post
@@ -78,10 +103,33 @@ const deletePost = async (postId) => {
   return post.toObject();
 };
 
+// NEW: 2. Bulk update denormalized author data
+// This is called by auth.service.js after a user changes their username.
+const bulkUpdateAuthorUsername = async (authorId, newUsername) => {
+  // Use Mongoose's updateMany for efficiency
+  const result = await Post.updateMany(
+    { 'author.id': authorId }, // Filter for all posts by this author
+    { $set: { 'author.username': newUsername } } // Update the denormalized field
+  );
+  
+  // Log the operation for audit/debugging
+  logger.info({
+    event: 'denorm_update_completed',
+    authorId: authorId,
+    newUsername: newUsername,
+    matchedCount: result.matchedCount,
+    modifiedCount: result.modifiedCount,
+  });
+  
+  return result;
+};
+
+
 module.exports = {
   createPost,
   getPostById,
-  getPosts,
+  getPosts, // Export updated function
   updatePost,
   deletePost,
+  bulkUpdateAuthorUsername, // Export new function
 };
