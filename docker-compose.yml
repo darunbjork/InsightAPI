@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    container_name: insightapi-api
+    ports:
+      - "5001:5000"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules # Avoid overwriting node_modules inside container
+    env_file:
+      - .env
+    restart: always
+    command: npm run dev
+
+  mongo:
+    image: mongo:latest
+    container_name: insightapi-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      # Persist data outside the container
+      - mongo-data:/data/db
+    restart: always
+
+volumes:
+  mongo-data:
