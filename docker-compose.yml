@@ -9,6 +9,8 @@ services:
       - /usr/src/app/node_modules # Avoid overwriting node_modules inside container
     env_file:
       - .env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/insightapi
     restart: always
     command: npm run dev
 

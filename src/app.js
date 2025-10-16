@@ -14,6 +14,7 @@ const AppError = require('./utils/AppError');
 
 // Import routes
 const authRoutes = require('./api/auth.routes');
+const postRoutes = require('./api/post.routes');
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.get('/health', (req, res) => {
 
 // API Routes (Versioned)
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/posts', postRoutes);
 
 // --- Error Handling ---
 
