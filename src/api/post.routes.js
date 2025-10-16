@@ -17,12 +17,6 @@ const checkPostOwnership = async (req, res, next) => {
     // We only need the author's ID, so select only that field for efficiency
     const post = await postService.getPostById(postId);
 
-    // Ensure post exists (handled by service, but check result is good practice)
-    if (!post) {
-      // Service would throw 404, but double-check to avoid downstream errors
-      return next(new AppError(`Post with ID ${postId} not found.`, 404, 'POST_NOT_FOUND'));
-    }
-
     // Convert ObjectIds to strings for safe comparison
     if (post.author.id.toString() !== req.user.id.toString()) {
       logger.warn({ 
