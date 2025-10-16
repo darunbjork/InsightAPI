@@ -6,6 +6,9 @@ const authService = require('../services/auth.service');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 
+const validate = require('../middleware/validate.middleware');
+const { register, login } = require('../validation/auth.validation');
+
 const router = express.Router();
 
 // Helper to set tokens as secure HttpOnly cookies
@@ -52,15 +55,10 @@ const clearAuthCookies = (res) => {
 };
 
 // POST /api/v1/auth/register
-router.post('/register', async (req, res, next) => {
+router.post('/register', validate(register), async (req, res, next) => {
   try {
     const { username, email, password } = req.body;
     
-    // Basic structural validation - full schema validation is for Phase 2
-    if (!username || !email || !password) {
-      throw new AppError('Please provide username, email, and password.', 400, 'INVALID_INPUT');
-    }
-
     const { user, accessToken, refreshToken } = await authService.registerUser({ username, email, password });
 
     setAuthCookies(res, accessToken, refreshToken);
@@ -78,13 +76,9 @@ router.post('/register', async (req, res, next) => {
 });
 
 // POST /api/v1/auth/login
-router.post('/login', async (req, res, next) => {
+router.post('/login', validate(login), async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      throw new AppError('Please provide email and password.', 400, 'INVALID_INPUT');
-    }
 
     const { user, accessToken, refreshToken } = await authService.loginUser({ email, password });
 

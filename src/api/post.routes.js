@@ -7,6 +7,9 @@ const authenticate = require('../middleware/auth.middleware');
 const logger = require('../utils/logger');
 const AppError = require('../utils/AppError');
 
+const validate = require('../middleware/validate.middleware');
+const postValidation = require('../validation/post.validation');
+
 const router = express.Router();
 
 // Middleware to check if the authenticated user is the author of the post
@@ -56,12 +59,11 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// POST /api/v1/posts - Create a new post (Requires auth)
-router.post('/', authenticate, async (req, res, next) => {
+// POST /api/v1/posts - Create a new post (Requires auth and validation)
+router.post('/', authenticate, validate(postValidation.createPost), async (req, res, next) => {
   try {
     const { title, content } = req.body;
     
-    // We already have user info from the authentication middleware
     const post = await postService.createPost({
       title,
       content,
@@ -79,8 +81,10 @@ router.post('/', authenticate, async (req, res, next) => {
 });
 
 // GET /api/v1/posts/:id - Get a specific post
-router.get('/:id', async (req, res, next) => {
+// Add validation for the ID parameter
+router.get('/:id', validate(postValidation.getPost), async (req, res, next) => {
   try {
+    // The validate middleware now guarantees req.params.id is a valid ObjectId format
     const post = await postService.getPostById(req.params.id);
     res.status(200).json({ status: 'success', data: post });
   } catch (error) {
@@ -89,10 +93,9 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // PUT /api/v1/posts/:id - Update a post (Requires auth AND ownership)
-router.put('/:id', authenticate, checkPostOwnership, async (req, res, next) => {
+router.put('/:id', authenticate, checkPostOwnership, validate(postValidation.updatePost), async (req, res, next) => {
   try {
-    const { title, content } = req.body;
-    const updateBody = { title, content }; // Only allow these fields
+    const updateBody = req.body; 
 
     const post = await postService.updatePost(req.params.id, updateBody);
 
@@ -104,8 +107,9 @@ router.put('/:id', authenticate, checkPostOwnership, async (req, res, next) => {
   }
 });
 
-// DELETE /api/v1/posts/:id - Delete a post (Requires auth AND ownership)
-router.delete('/:id', authenticate, checkPostOwnership, async (req, res, next) => {
+// DELETE /api/v1/posts/:id - Delete a post 
+// Add validation for the ID parameter
+router.delete('/:id', authenticate, checkPostOwnership, validate(postValidation.getPost), async (req, res, next) => {
   try {
     await postService.deletePost(req.params.id);
 

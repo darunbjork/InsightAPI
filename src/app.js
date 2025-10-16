@@ -12,6 +12,8 @@ const requestTracer = require('./middleware/request-tracer');
 const errorHandler = require('./middleware/error-handler');
 const AppError = require('./utils/AppError');
 
+const rateLimiter = require('./middleware/rate-limiter'); 
+
 // Import routes
 const authRoutes = require('./api/auth.routes');
 const postRoutes = require('./api/post.routes');
@@ -52,6 +54,10 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // 6. Cookie Parser: Required to read the HttpOnly cookies.
 app.use(cookieParser());
+
+// 7. General Rate Limiting: Apply to all incoming requests
+// 100 requests per minute per IP is a good, generous starting point.
+app.use(rateLimiter({ max: 100, windowMs: 60 * 1000 }));
 
 // --- Core Routes ---
 

@@ -35,4 +35,40 @@ mongoose.connection.on('error', (err) => {
   // and Mongoose will attempt to auto-reconnect.
 });
 
-// ... (Server start logic remains the same)
+// --- Server Start ---
+
+let server;
+
+connectDB().then(() => {
+  server = app.listen(config.port, () => {
+    logger.info({ event: 'server_started', port: config.port, env: config.env });
+  });
+});
+
+// --- Graceful Shutdown ---
+
+const exitHandler = () => {
+  if (server) {
+    server.close(() => {
+      logger.info({ event: 'server_closed', message: 'Server closed.' });
+      process.exit(1);
+    });
+  } else {
+    process.exit(1);
+  }
+};
+
+const unexpectedErrorHandler = (error) => {
+  logger.error({ event: 'unexpected_error', error: error.message, stack: error.stack });
+  exitHandler();
+};
+
+process.on('uncaughtException', unexpectedErrorHandler);
+process.on('unhandledRejection', unexpectedErrorHandler);
+
+process.on('SIGTERM', () => {
+  logger.info({ event: 'sigterm_received', message: 'SIGTERM received.' });
+  if (server) {
+    server.close();
+  }
+});
