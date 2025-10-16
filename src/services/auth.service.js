@@ -8,6 +8,7 @@ const PostService = require('./post.service');
 const AppError = require('../utils/AppError');
 const logger = require('../utils/logger');
 const config = require('../config/config');
+const storageUtils = require('../utils/storage'); // To handle cleanup
 
 // Helper function to generate both tokens
 const generateAuthTokens = (user) => {
@@ -96,6 +97,30 @@ const refreshAuthTokens = async (refreshToken) => {
   return { user, accessToken: newAccessToken, refreshToken: newRefreshToken };
 };
 
+// NEW: Update only the user's avatar
+const updateUserAvatar = async (userId, newAvatarUrl) => {
+  const oldUser = await User.findById(userId);
+  
+  if (!oldUser) {
+    // Should be caught by auth middleware, but safety check
+    throw new AppError('User not found.', 404, 'USER_NOT_FOUND');
+  }
+  
+  const oldAvatarUrl = oldUser.avatar;
+  
+  // Update the avatar field in the database
+  const updatedUser = await User.findByIdAndUpdate(userId, { avatar: newAvatarUrl }, {
+    new: true, // Return the updated document
+  }).select('-password -__v');
+  
+  if (!updatedUser) {
+      throw new AppError('Avatar update failed unexpectedly.', 500, 'UPDATE_FAILED');
+  }
+
+  // Return the old URL for the route to handle cleanup, and the new user object
+  return { oldAvatarUrl, updatedUser: updatedUser.toObject() };
+};
+
 // NEW: Update user profile logic
 const updateUserProfile = async (userId, updateBody) => {
   // 1. Check if the username is being updated
@@ -155,5 +180,6 @@ module.exports = {
   refreshAuthTokens,
   logoutUser,
   generateAuthTokens, // Exported for potential internal use/testing
-  updateUserProfile, // Export new function
+  updateUserProfile, 
+  updateUserAvatar, // Export new function
 };

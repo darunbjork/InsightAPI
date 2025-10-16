@@ -28,16 +28,19 @@ const UserSchema = new mongoose.Schema({
     // NEVER send the hash back
     select: false, 
   },
-  // Field for refresh token revocation
-  // This will store a list of blacklisted/revoked refresh tokens by their JTI (JWT ID)
-  blacklistedRefreshTokens: {
-    type: [String],
-    default: [],
-  }
-}, {
-  timestamps: true, // Add createdAt and updatedAt fields
-});
-
+      // Field for refresh token revocation
+    // This will store a list of blacklisted/revoked refresh tokens by their JTI (JWT ID)
+    blacklistedRefreshTokens: {
+      type: [String],
+      default: [],
+    },
+    avatar: {
+      type: String,
+      default: '/public/defaults/avatar.png',
+    }
+  }, {
+    timestamps: true, // Add createdAt and updatedAt fields
+  });
 // Middleware to hash password before saving (pre-save hook)
 UserSchema.pre('save', async function (next) {
   // Only run this function if password was actually modified

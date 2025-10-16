@@ -11,6 +11,7 @@ const config = require('./config/config');
 const requestTracer = require('./middleware/request-tracer');
 const errorHandler = require('./middleware/error-handler');
 const AppError = require('./utils/AppError');
+const path = require('path'); // Node.js path module
 
 const rateLimiter = require('./middleware/rate-limiter'); 
 
@@ -54,6 +55,10 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // 6. Cookie Parser: Required to read the HttpOnly cookies.
 app.use(cookieParser());
+
+// CRITICAL: Serve Static Files (Avatars, defaults, etc.)
+// Maps '/public' URL prefix to the physical 'src/public' directory
+app.use('/public', express.static(path.join(__dirname, 'public'))); 
 
 // 7. General Rate Limiting: Apply to all incoming requests
 // 100 requests per minute per IP is a good, generous starting point.

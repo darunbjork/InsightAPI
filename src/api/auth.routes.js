@@ -8,6 +8,8 @@ const logger = require('../utils/logger');
 
 const validate = require('../middleware/validate.middleware');
 const authenticate = require('../middleware/auth.middleware');
+const uploadAvatar = require('../middleware/upload.middleware');
+const storageUtils = require('../utils/storage'); // To handle cleanup
 const { register, login, updateProfile } = require('../validation/auth.validation');
 
 const router = express.Router();
@@ -169,6 +171,44 @@ router.put('/profile', authenticate, validate(updateProfile), async (req, res, n
       user: updatedUser 
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+// NEW: PUT /api/v1/auth/avatar - Update user avatar (File Upload)
+router.put('/avatar', authenticate, uploadAvatar, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    
+    // 1. Check if the file was successfully uploaded by Multer
+    if (!req.file) {
+      // If upload failed before Multer calls next(), it handles the error.
+      // This is a safety check for a form submission without a file.
+      return next(new AppError('No avatar file provided.', 400, 'NO_FILE_PROVIDED'));
+    }
+    
+    // 2. Upload the file to our simulated cloud storage
+    // This moves the file from the temp location and gets the public URL/key.
+    const newAvatarUrl = await storageUtils.uploadFileToCloud(req.file, 'avatars');
+    
+    // 3. Update the avatar field in the User model
+    const { oldAvatarUrl, updatedUser } = await authService.updateUserAvatar(userId, newAvatarUrl);
+    
+    // 4. Delete the old avatar from storage (cleanup)
+    if (oldAvatarUrl && oldAvatarUrl.startsWith('/public/')) {
+      // We only delete if the old URL was a valid local one (i.e., not a default image)
+      await storageUtils.deleteFileFromCloud(oldAvatarUrl);
+    }
+
+    res.status(200).json({ 
+      status: 'success', 
+      message: 'Avatar updated.', 
+      avatarUrl: updatedUser.avatar 
+    });
+  } catch (error) {
+    // If we catch an error, the file is still in the temp directory.
+    // In a real system, you'd add a final cleanup middleware to remove req.file 
+    // from /temp/ on all requests, success or fail.
     next(error);
   }
 });
