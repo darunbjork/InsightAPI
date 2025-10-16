@@ -140,6 +140,23 @@ const updateCommentCount = async (postId, incrementValue) => {
   return post.commentCount;
 };
 
+// NEW: Atomic Increment/Decrement for the likeCount
+const updateLikeCount = async (postId, incrementValue) => {
+  // Use $inc for an atomic update.
+  const post = await Post.findByIdAndUpdate(
+    postId, 
+    { $inc: { likeCount: incrementValue } },
+    { new: true, select: 'likeCount' } // Return the new count
+  ).lean();
+
+  if (!post) {
+    throw new AppError(`Post with ID ${postId} not found.`, 404, 'POST_NOT_FOUND');
+  }
+
+  return post.likeCount;
+};
+
+
 module.exports = {
   createPost,
   getPostById,
@@ -147,5 +164,6 @@ module.exports = {
   updatePost,
   deletePost,
   bulkUpdateAuthorUsername,
-  updateCommentCount, // Export new function
+  updateCommentCount,
+  updateLikeCount, // Export new function
 };

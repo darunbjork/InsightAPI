@@ -102,10 +102,28 @@ const getCommentById = async (commentId) => {
   return comment;
 };
 
+// NEW: Atomic Increment/Decrement for the likeCount
+const updateLikeCount = async (commentId, incrementValue) => {
+  // Use $inc for an atomic update.
+  const comment = await Comment.findByIdAndUpdate(
+    commentId, 
+    { $inc: { likeCount: incrementValue } },
+    { new: true, select: 'likeCount' } // Return the new count
+  ).lean();
+
+  if (!comment) {
+    throw new AppError(`Comment with ID ${commentId} not found.`, 404, 'COMMENT_NOT_FOUND');
+  }
+
+  return comment.likeCount;
+};
+
+
 module.exports = {
   createComment,
   getCommentsForPost,
   updateComment,
   deleteComment,
-  getCommentById, // EXPORTED
+  getCommentById,
+  updateLikeCount, // Export new function
 };

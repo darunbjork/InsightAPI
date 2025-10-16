@@ -19,6 +19,7 @@ const rateLimiter = require('./middleware/rate-limiter');
 const authRoutes = require('./api/auth.routes');
 const postRoutes = require('./api/post.routes'); 
 const commentRoutes = require('./api/comment.routes'); 
+const likeRoutes = require('./api/like.routes'); 
 const app = express();
 
 // --- Production-Grade Middleware ---
@@ -81,6 +82,7 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/comments', commentRoutes); 
+app.use('/api/v1/likes', likeRoutes); 
 
 // --- Error Handling ---
 
