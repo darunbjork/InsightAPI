@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: insight-api
+    env: docker
+    repo: https://github.com/darunbjork/InsightAPI.git
+    branch: main
+    healthCheckPath: /health
+    autoDeploy: true
+    buildCommand: "npm install && npm test"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - fromGroup: insightapi-secrets
