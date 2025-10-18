@@ -84,6 +84,14 @@ app.use(rateLimiter({ max: 100, windowMs: 60 * 1000 }));
 
 // --- Core Routes ---
 
+// Welcome Route: Provide a friendly welcome message at the root.
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'Welcome to the InsightAPI!',
+    documentation: `${req.protocol}://${req.get('host')}/api-docs`,
+  });
+});
+
 // Health Check: Operational readiness endpoint.
 app.get('/health', (req, res) => {
   // In Phase 3, this will check DB connection status as well.

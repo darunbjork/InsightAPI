@@ -10,9 +10,9 @@ This project was developed with a strong focus on **security, scalability, and m
 
 The API is deployed on Render and is publicly accessible at the following URLs:
 
-*   **Base URL:** `https://insight-api-production.onrender.com`
-*   **Health Check:** `https://insight-api-production.onrender.com/health`
-*   **API Endpoints:** `https://insight-api-production.onrender.com/api/v1`
+*   **Base URL:** [`https://insight-api-production.onrender.com`](https://insight-api-production.onrender.com)
+*   **Health Check:** [`https://insight-api-production.onrender.com/health`](https://insight-api-production.onrender.com/health)
+*   **API Endpoints:** [`https://insight-api-production.onrender.com/api/v1`](https://insight-api-production.onrender.com/api/v1)
 
 ## ✨ Key Features & Architectural Highlights
 
