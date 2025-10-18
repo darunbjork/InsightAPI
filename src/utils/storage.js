@@ -1,87 +1,66 @@
 // storage.js
-// Cloud Storage Abstraction for Cloudflare R2
+// Cloud Storage Abstraction (Placeholder for AWS S3/GCS)
 
-const AWS = require('aws-sdk');
-const fs = require('fs');
+const fs = require('fs/promises');
 const path = require('path');
 const logger = require('./logger');
 
-// --- R2 Configuration ---
-const { R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID, R2_BUCKET_NAME, R2_PUBLIC_URL } = process.env;
-
-if (!R2_ACCOUNT_ID || !R2_BUCKET_NAME) {
-  logger.warn('Cloudflare R2 environment variables are not fully set. File uploads will not work in production.');
-}
-
-const s3 = new AWS.S3({
-  endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  accessKeyId: R2_ACCESS_KEY_ID,
-  secretAccessKey: R2_SECRET_ACCESS_KEY,
-  signatureVersion: 'v4',
-  region: 'auto', // R2 is region-less
-});
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
 /**
- * Uploads a file to a Cloudflare R2 bucket and returns its public URL.
+ * Simulates uploading a file to cloud storage and returns its accessible URL/key.
+ * In production, this would use S3/GCS SDK.
  * @param {object} file - The file object provided by Multer.
  * @param {string} destDir - The target sub-directory (e.g., 'avatars/').
- * @returns {string} The public URL for the file.
+ * @returns {string} The public URL/key for the file.
  */
 const uploadFileToCloud = async (file, destDir = 'uploads') => {
-  if (!R2_BUCKET_NAME || !R2_PUBLIC_URL) {
-    throw new Error('R2 bucket name or public URL is not configured.');
-  }
+  // 1. Create a unique file path within the public directory
+  const relativePath = path.join(destDir, file.filename);
+  const fullPath = path.join(PUBLIC_DIR, relativePath);
+  
+  // 2. Ensure the destination directory exists
+  await fs.mkdir(path.join(PUBLIC_DIR, destDir), { recursive: true });
 
-  const fileStream = fs.createReadStream(file.path);
-  const s3Key = path.join(destDir, file.filename);
+  // 3. Move the file from its temporary Multer location to the public location
+  await fs.rename(file.path, fullPath);
 
-  const params = {
-    Bucket: R2_BUCKET_NAME,
-    Key: s3Key,
-    Body: fileStream,
-    ContentType: file.mimetype,
-  };
+  // 4. Log and return the "public" path (accessible via Express static middleware)
+  const fileKey = `/public/${relativePath}`; // The URL path
+  
+  logger.info({ event: 'storage_upload_success', fileKey });
 
-  try {
-    await s3.upload(params).promise();
-    await fs.promises.unlink(file.path);
-
-    // Construct the public URL manually
-    const publicUrl = `${R2_PUBLIC_URL}/${s3Key}`;
-
-    logger.info({ event: 'storage_upload_success', fileKey: s3Key, location: publicUrl });
-
-    return publicUrl;
-  } catch (error) {
-    await fs.promises.unlink(file.path);
-    logger.error({ event: 'storage_upload_failure', error: error.message });
-    throw error;
-  }
+  // IMPORTANT: For true cloud storage, this would be: 
+  // `https://<bucket-name>.s3.<region>.amazonaws.com/${relativePath}`
+  return fileKey;
 };
 
 /**
- * Deletes a file from a Cloudflare R2 bucket.
- * @param {string} fileUrl - The public URL of the file in R2.
+ * Simulates deleting a file from cloud storage.
+ * In production, this would call the S3/GCS delete API.
+ * @param {string} fileKey - The unique key/path of the file (e.g., '/public/avatars/...).
  */
-const deleteFileFromCloud = async (fileUrl) => {
-  if (!R2_BUCKET_NAME || !fileUrl || !R2_PUBLIC_URL) {
-    return;
+const deleteFileFromCloud = async (fileKey) => {
+  // 1. Convert the public URL path back to the local file system path
+  if (!fileKey || !fileKey.startsWith('/public/')) {
+      logger.warn({ event: 'storage_delete_invalid', fileKey });
+      return; // Safety check
   }
+  
+  // Convert /public/avatars/filename.jpg -> path/to/src/public/avatars/filename.jpg
+  const relativePath = fileKey.substring('/public/'.length);
+  const fullPath = path.join(PUBLIC_DIR, relativePath);
 
   try {
-    // Extract the S3 key from the full public URL
-    const s3Key = fileUrl.replace(R2_PUBLIC_URL + '/', '');
-
-    const params = {
-      Bucket: R2_BUCKET_NAME,
-      Key: s3Key,
-    };
-
-    await s3.deleteObject(params).promise();
-
-    logger.info({ event: 'storage_delete_success', fileKey: s3Key });
+    await fs.unlink(fullPath);
+    logger.info({ event: 'storage_delete_success', fileKey });
   } catch (error) {
-    logger.error({ event: 'storage_delete_failure', fileUrl, error: error.message });
+    if (error.code === 'ENOENT') {
+        logger.warn({ event: 'storage_delete_missing', fileKey });
+    } else {
+        logger.error({ event: 'storage_delete_failure', fileKey, error: error.message });
+        throw error;
+    }
   }
 };
 
