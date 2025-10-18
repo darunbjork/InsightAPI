@@ -14,7 +14,7 @@ This project was developed with a strong focus on **security, scalability, and m
 | **Data Integrity** | **Joi** schema validation for all incoming requests (body, params, query) at the API boundary. | Input Validation & Data Integrity |
 | **Interactions** | **Comments** and **Polymorphic Likes** on both posts and comments using a single `Like` model. | Code Reuse & Polymorphism |
 | **Scalability** | **Atomic Counting (`$inc`)** for `commentCount` and `likeCount` to prevent race conditions during concurrent updates. **Offset Pagination** for efficient feed retrieval. | Atomic Operations & Denormalization |
-| **File Storage** | Cloud-ready abstraction for file uploads (avatars) using **Multer** and a dedicated storage service, ready to swap from local disk to **AWS S3 or GCS**. | Storage Abstraction |
+| **File Storage** | **Cloudflare R2** integration for production-grade, scalable object storage, using an S3-compatible API. | Cloud Storage Abstraction |
 | **Security** | Comprehensive error handling, **Rate Limiting** (DoS mitigation), and strict security headers via **Helmet** (HSTS, etc.). | Security-by-Design |
 | **Observability** | Centralized **Winston Logger** with request tracing (unique request ID per transaction). | Observability & Auditing |
 | **Developer Experience**| Interactive API documentation using **Swagger UI / OpenAPI 3.0** accessible at `/api-docs`. | Documentation & DX |
@@ -26,7 +26,7 @@ This project was developed with a strong focus on **security, scalability, and m
   * **Database:** MongoDB / Mongoose ODM
   * **Testing:** Jest & Supertest, utilizing `mongodb-memory-server` for integration tests.
   * **Security:** JSON Web Tokens (JWT), Helmet, `HttpOnly` Cookies, Rate Limiter.
-  * **Utilities:** Joi (Validation), Multer (File Uploads), Winston (Logging).
+  * **Utilities:** Joi (Validation), Multer (File Uploads), Winston (Logging), **AWS SDK** (for R2 compatibility).
 
 ## 🚀 Getting Started
 
@@ -56,9 +56,9 @@ You need to have **Docker** and **Docker Compose** installed.
 
 3.  **Access the API:**
 
-      * **Application is running on:** `http://localhost:5000`
-      * **API Endpoints are at:** `http://localhost:5000/api/v1`
-      * **Interactive Documentation (Swagger UI):** `http://localhost:5000/api-docs`
+      * **Application is running on:** `http://localhost:5001`
+      * **API Endpoints are at:** `http://localhost:5001/api/v1`
+      * **Interactive Documentation (Swagger UI):** `http://localhost:5001/api-docs`
 
 -----
 
@@ -73,7 +73,7 @@ If you prefer to run the application directly on your local machine without Dock
     ```
 
 2.  **Environment Setup:**
-    Create a `.env` file in the project root based on the provided configuration (ensure you set a strong `JWT_SECRET` and a valid `MONGODB_URI`).
+    Create a `.env` file in the project root. Make sure to include the R2 configuration variables as outlined in the Deployment Notes section.
 
 3.  **Run in Development Mode:**
 
@@ -96,15 +96,20 @@ npm test
 All available routes, required parameters, and response schemas are documented using the **OpenAPI 3.0 Specification**.
 
 Access the interactive documentation at:
-**`http://localhost:5000/api-docs`**
+**`http://localhost:5001/api-docs`**
 
 ## 💡 Deployment Notes (Production Readiness)
 
 Before moving this API to production, please ensure the following critical services are configured:
 
 1.  **Database:** Replace the development MongoDB with a managed service (e.g., **MongoDB Atlas**).
-2.  **File Storage:** Update `src/utils/storage.js` to utilize the SDK for a cloud provider (e.g., **AWS S3** or **Google Cloud Storage**) instead of the local file system.
-3.  **Rate Limiter:** Replace the in-memory rate limiter in `src/middleware/rate-limiter.middleware.js` with a scalable solution like **Redis** for coordination across multiple instances.
+2.  **File Storage:** The application is configured to use **Cloudflare R2**. You must set the following environment variables in your production environment (e.g., Render, Heroku):
+    *   `R2_ACCESS_KEY_ID`
+    *   `R2_SECRET_ACCESS_KEY`
+    *   `R2_ACCOUNT_ID`
+    *   `R2_BUCKET_NAME`
+    *   `R2_PUBLIC_URL`
+3.  **Rate Limiter:** Replace the in-memory rate limiter in `src/middleware/rate-limiter.js` with a scalable solution like **Redis** for coordination across multiple instances.
 4.  **HSTS:** Ensure HTTPS is enforced by your load balancer or hosting provider for HSTS to be effective.
 
 -----

@@ -26,7 +26,7 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
     httpOnly: true, // Crucial for XSS defense
     secure: isProd, // Must be true in production (requires HTTPS)
     sameSite: 'Lax', // Good balance for initial setup
-    path: '/api/v1/auth'
+    path: '/api/v1'
   });
   
   // Refresh Token: Long-lived, HttpOnly, SameSite=Strict
@@ -35,7 +35,7 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
     httpOnly: true,
     secure: isProd, 
     sameSite: 'Lax', // More restrictive, better for high-security tokens
-    path: '/api/v1/auth' // Restrict to the refresh endpoint only
+    path: '/api/v1' // Restrict to the refresh endpoint only
   });
 };
 
@@ -46,14 +46,14 @@ const clearAuthCookies = (res) => {
     expires: new Date(Date.now() + 10 * 1000), // Expire in 10s
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'Lax',
-    path: '/api/v1/auth'
+    path: '/api/v1'
   });
   res.cookie('refreshToken', 'loggedout', {
     httpOnly: true,
     expires: new Date(Date.now() + 10 * 1000), 
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'Lax',
-    path: '/api/v1/auth',
+    path: '/api/v1',
   });
 };
 
